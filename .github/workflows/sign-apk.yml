@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   sign:
@@ -54,3 +54,13 @@ jobs:
           name: ArcScribe-signed-apk
           path: out/
           retention-days: 30
+
+      - name: Save the signed APK in the apk branch (no key files)
+        run: |
+          cp ArcScribe.apk ArcScribe-signed.apk
+          { echo "ArcScribe signed APK - public details only (no passwords or key file)."; keytool -list -v -keystore arcscribe.keystore -storepass "$PW" | grep -E "SHA256:"; "$BT/aapt" dump badging ArcScribe.apk | grep -E "^package:" || true; } > apk-info.txt
+          git config user.name "Srushti Sridatta"
+          git config user.email "SrushtiSriDatta@users.noreply.github.com"
+          git add ArcScribe-signed.apk apk-info.txt
+          git commit -m "Signed ArcScribe APK [skip ci]"
+          git push

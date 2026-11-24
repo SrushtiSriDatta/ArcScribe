@@ -1,0 +1,56 @@
+name: Build signed ArcScribe APK
+
+on:
+  push:
+    branches: [apk]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find Android build tools
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "Using $BT"
+          echo "BT=$BT" >> "$GITHUB_ENV"
+
+      - name: Create a signing key for ArcScribe
+        run: |
+          PW=$(openssl rand -hex 16)
+          echo "::add-mask::$PW"
+          echo "PW=$PW" >> "$GITHUB_ENV"
+          keytool -genkeypair -keystore arcscribe.keystore -alias arcscribe -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$PW" -keypass "$PW" -dname "CN=Srushti Sridatta, O=ArcScribe, C=IN"
+
+      - name: Align and sign the APK
+        run: |
+          "$BT/zipalign" -p -f 4 ArcScribe-unsigned.apk aligned.apk
+          "$BT/apksigner" sign --ks arcscribe.keystore --ks-key-alias arcscribe \
+            --ks-pass "pass:$PW" --key-pass "pass:$PW" --out ArcScribe.apk aligned.apk
+          "$BT/apksigner" verify --verbose ArcScribe.apk
+
+      - name: Write key details
+        run: |
+          mkdir out
+          cp ArcScribe.apk arcscribe.keystore out/
+          {
+            echo "ArcScribe signing key - keep this file and arcscribe.keystore safe and private."
+            echo "Key alias: arcscribe"
+            echo "Keystore password and key password: $PW"
+            echo
+            keytool -list -v -keystore arcscribe.keystore -storepass "$PW" | grep -E "SHA256:|SHA1:"
+            echo
+            "$BT/aapt" dump badging ArcScribe.apk | grep -E "^package:|sdkVersion|targetSdkVersion" || true
+          } > out/signing-key-info.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ArcScribe-signed-apk
+          path: out/
+          retention-days: 30

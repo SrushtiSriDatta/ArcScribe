@@ -1,0 +1,3 @@
+ArcScribe signed APK - public details only (no passwords or key file).
+	 SHA256: 19:F6:3B:73:AA:A8:EE:E3:11:A4:21:C9:C3:DC:ED:37:C1:47:5F:AC:26:F1:A3:13:22:76:5F:EB:AB:9A:4D:DD
+package: name='io.github.srushtisridatta.twa' versionCode='1' versionName='1.0.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
